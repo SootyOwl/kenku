@@ -7,8 +7,24 @@ readme = "README.md"
 packages = [{include = "dnd_note_tool", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.12"
+openai = "^0.27.1"
+ipykernel = "^6.21.3"
+pandas = "^1.5.3"
+numpy = "^1.24.2"
+tiktoken = "^0.3.0"
+matplotlib = "^3.7.1"
+plotly = "^5.13.1"
+scipy = "^1.10.1"
+scikit-learn = "^1.2.2"
+transformers = "^4.26.1"
+torch = "^1.13.1"
+torchvision = "^0.14.1"
+python-dotenv = "^1.0.0"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.21.3"
 
 [build-system]
 requires = ["poetry-core"]
