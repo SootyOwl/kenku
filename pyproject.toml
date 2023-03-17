@@ -22,6 +22,10 @@ torch = "^1.13.1"
 torchvision = "^0.14.1"
 python-dotenv = "^1.0.0"
 pandoc = "^2.3"
+pandarallel = "^1.6.4"
+line-profiler = "^4.0.3"
+ipywidgets = "^8.0.4"
+jupyter-contrib-nbextensions = "^0.7.0"
 
 
 [tool.poetry.group.dev.dependencies]
