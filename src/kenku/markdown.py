@@ -31,9 +31,7 @@ class Section:
         elif isinstance(content, list):
             self.content = content
         else:
-            raise TypeError(
-                f"content must be of type str or list, not {type(content)}"
-            )
+            raise TypeError(f"content must be of type str or list, not {type(content)}")
         self.parent = parent
         if self.parent:
             self.parent.add_child(self)
@@ -61,7 +59,9 @@ class Section:
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.title, ''.join(self.content), self.parent, tuple(self.children)))
+        return hash(
+            (self.title, "".join(self.content), self.parent, tuple(self.children))
+        )
 
     def add_child(self, child: "Section"):
         """Add a child section to this section.
@@ -115,11 +115,11 @@ class Section:
         if self.parent:
             siblings.extend(self.parent.children)
         return siblings
-    
+
     def get_level(self) -> int:
         """Get the level of this section in the tree.
 
-        The level is defined as the number of ancestors of this section. 
+        The level is defined as the number of ancestors of this section.
         The root / top-level section has level 0.
 
         Returns:
@@ -134,11 +134,11 @@ class Section:
             "content": self.content,
             "children": [child.dict() for child in self.children],
         }
-    
+
     def copy(self) -> "Section":
         """Create a copy of this section."""
         return copy.deepcopy(self)
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Section":
         """Create a section from a dictionary, for use in JSON deserialization."""
@@ -147,7 +147,7 @@ class Section:
             content=data["content"],
             children=[cls.from_dict(child) for child in data["children"]],
         )
-    
+
     @classmethod
     def from_markdown(cls, markdown: str) -> "Section":
         """Create a section from a markdown string."""
@@ -155,11 +155,11 @@ class Section:
         for line in markdown.splitlines():
             builder.add_line(line)
         return builder.tree()
-    
+
     def to_markdown(self) -> str:
         """Convert this section to a markdown string."""
         return "\n\n".join(self._md_lines())
-    
+
     def _md_lines(self) -> List[str]:
         """Get the markdown lines for this section."""
         # get the level of this section
@@ -238,6 +238,7 @@ class SectionBuilder:
         tree = self.builder.children[0].copy()
         tree.parent = None
         return tree
+
 
 def parse_sections(markdown: str) -> Section:
     """Parse a markdown string into a tree of Section objects.
