@@ -1,5 +1,5 @@
 import pytest
-from kenku.markdown import Section, parse_sections
+from kenku.core.markdown import Section, parse_sections
 
 
 def test_section_ancestors():
@@ -130,7 +130,7 @@ def test_section_to_markdown():
 
 import pytest
 
-from kenku.markdown import parse_sections, Section
+from kenku.core.markdown import parse_sections, Section
 
 
 # region: Section tests
