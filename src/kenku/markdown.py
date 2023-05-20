@@ -2,7 +2,7 @@
 
 import copy
 import re
-from typing import List, AnyStr
+from typing import List, Optional
 
 HEADINGS_REGEX = re.compile(r"(?P<level>#+)\s*(?P<heading>.+)")
 
@@ -13,9 +13,9 @@ class Section:
     def __init__(
         self,
         title: str,
-        content: List[AnyStr],
-        parent: "Section" = None,
-        children: List["Section"] = None,
+        content: List[str] | str,
+        parent: Optional["Section"] = None,
+        children: Optional[List["Section"]] = None,
     ):
         """Initialize a Section object.
 
@@ -53,7 +53,7 @@ class Section:
             return f"Section(title='{self.title}', content={self.content}, children={[child.title for child in self.children]})"
 
     def __eq__(self, other):
-        return self.dict() == other.dict() if isinstance(other, Section) else False
+        return self.to_dict() == other.to_dict() if isinstance(other, Section) else False
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -114,6 +114,7 @@ class Section:
         siblings = []
         if self.parent:
             siblings.extend(self.parent.children)
+            siblings.remove(self)
         return siblings
 
     def get_level(self) -> int:
@@ -127,12 +128,12 @@ class Section:
         """
         return self.parent.get_level() + 1 if self.parent else 0
 
-    def dict(self) -> dict:
+    def to_dict(self) -> dict:
         """Convert this section to a dictionary, for use in JSON serialization."""
         return {
             "title": self.title,
             "content": self.content,
-            "children": [child.dict() for child in self.children],
+            "children": [child.to_dict() for child in self.children],
         }
 
     def copy(self) -> "Section":
@@ -176,10 +177,10 @@ class Section:
 class SectionBuilder:
     """A class for building a tree of Section objects from a markdown string."""
 
-    def __init__(self, sections: List[Section] = None):
+    def __init__(self, sections: Optional[List[Section]] = None):
         """Initialize a SectionBuilder object."""
         self.builder = Section("", [])
-        if sections:
+        if sections is not None:
             self.builder.add_children(sections)
         self.current_section = self.builder
         self.current_level = 0
@@ -211,7 +212,7 @@ class SectionBuilder:
         parent = self.current_section.parent
         while parent and parent.get_level() >= level:
             parent = parent.parent
-        parent.add_child(section)
+        parent.add_child(section) if parent else self.builder.add_child(section)
         self.current_section = section
         self.current_level = level
 
@@ -225,7 +226,7 @@ class SectionBuilder:
     def _add_sibling(self, heading):
         """Add a sibling section to the current section."""
         section = Section(heading, [])
-        self.current_section.parent.add_child(section)
+        self.current_section.parent.add_child(section) if self.current_section.parent else self.builder.add_child(section)
         self.current_section = section
 
     def tree(self) -> Section:

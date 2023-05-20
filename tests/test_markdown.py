@@ -1,23 +1,132 @@
-"""Tests for the markdown module, which handles the splitting of markdown files into sections.
+import pytest
+from kenku.markdown import Section, parse_sections
 
-Tests to include:
-    - Section.add_child adds a child section
-    - Section.add_children adds multiple child sections
-    - Section.get_descendants returns all descendants
-    - Section.get_ancestors returns all ancestors
-    - Section.get_siblings returns all siblings
-    - Section.dict returns a dictionary representation of the section
-    - Section.from_dict returns a Section object from a dictionary
-    - Section.from_markdown returns a Section object from a markdown string
-    - Section.to_markdown returns a markdown string from a Section object
 
-    - parse_sections returns a Section object
-    - parse_sections sets the correct hierarchy of sections
-    - parse_sections sets the correct content of sections
-    - parse_sections sets the correct title of sections
-    - parse_sections sets the correct content of sections with no title
-    - parse_sections sets the correct title of sections with no content    
-"""
+def test_section_ancestors():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    grandchild = Section("Grandchild", [], parent=child1)
+    assert grandchild.get_ancestors() == [child1, root]
+
+
+def test_section_siblings():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    assert child1.get_siblings() == [child2]
+
+
+def test_section_level():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    grandchild = Section("Grandchild", [], parent=child1)
+    assert grandchild.get_level() == 2
+
+
+def test_section_to_dict():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    grandchild = Section("Grandchild", [], parent=child1)
+    expected_dict = {
+        "title": "Root",
+        "content": [],
+        "children": [
+            {
+                "title": "Child 1",
+                "content": [],
+                "children": [
+                    {
+                        "title": "Grandchild",
+                        "content": [],
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "title": "Child 2",
+                "content": [],
+                "children": []
+            }
+        ]
+    }
+    assert root.to_dict() == expected_dict
+
+
+def test_section_copy():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    grandchild = Section("Grandchild", [], parent=child1)
+    copy = root.copy()
+    assert copy.to_dict() == root.to_dict()
+    assert copy is not root
+
+
+def test_section_from_dict():
+    data = {
+        "title": "Root",
+        "content": [],
+        "children": [
+            {
+                "title": "Child 1",
+                "content": [],
+                "children": [
+                    {
+                        "title": "Grandchild",
+                        "content": [],
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "title": "Child 2",
+                "content": [],
+                "children": []
+            }
+        ]
+    }
+    root = Section.from_dict(data)
+    assert root.to_dict() == data
+
+
+def test_section_from_markdown():
+    markdown = "# Root\n\n## Child 1\n\n### Grandchild\n\n## Child 2"
+    root = parse_sections(markdown)
+    expected_dict = {
+        "title": "Root",
+        "content": [],
+        "children": [
+            {
+                "title": "Child 1",
+                "content": [],
+                "children": [
+                    {
+                        "title": "Grandchild",
+                        "content": [],
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "title": "Child 2",
+                "content": [],
+                "children": []
+            }
+        ]
+    }
+    assert root.to_dict() == expected_dict
+
+
+def test_section_to_markdown():
+    root = Section("Root", [])
+    child1 = Section("Child 1", [], parent=root)
+    child2 = Section("Child 2", [], parent=root)
+    grandchild = Section("Grandchild", [], parent=child1)
+    expected_markdown = "# Root\n\n## Child 1\n\n### Grandchild\n\n## Child 2"
+    assert root.to_markdown() == expected_markdown
 
 import pytest
 
@@ -109,7 +218,7 @@ def test_section_get_siblings_returns_siblings(
 # THEN: the function returns a dictionary representation of the section
 def test_section_dict_returns_dict(section):
     """Test that the dict function returns a dictionary representation of the section."""
-    section_dict = section.dict()
+    section_dict = section.to_dict()
     assert section_dict["title"] == "Title"
     assert section_dict["content"] == ["Content"]
     assert section_dict["children"] == []
@@ -125,7 +234,7 @@ def test_section_dict_returns_dict_with_children(
     """Test that the dict function returns a dictionary representation of the section."""
     section.add_child(child_section)
     child_section.add_child(grandchild_section)
-    section_dict = section.dict()
+    section_dict = section.to_dict()
     assert section_dict["title"] == "Title"
     assert section_dict["content"] == ["Content"]
     assert section_dict["children"][0]["title"] == "Child Title"
@@ -141,7 +250,7 @@ def test_section_dict_returns_dict_with_children(
 # THEN: the function returns a Section object from a dictionary
 def test_section_from_dict_returns_section(section):
     """Test that the from_dict function returns a Section object from a dictionary."""
-    section_dict = section.dict()
+    section_dict = section.to_dict()
     section_from_dict = Section.from_dict(section_dict)
     assert isinstance(section_from_dict, Section)
     assert section_from_dict == section
@@ -157,7 +266,7 @@ def test_section_from_dict_returns_section_with_children(
     """Test that the from_dict function returns a Section object from a dictionary."""
     section.add_child(child_section)
     child_section.add_child(grandchild_section)
-    section_dict = section.dict()
+    section_dict = section.to_dict()
     section_from_dict = Section.from_dict(section_dict)
     assert isinstance(section_from_dict, Section)
     assert section_from_dict == section
@@ -193,7 +302,7 @@ def test_section_constructor_with_parent(section):
 def test_section_constructor_wrong_content_type():
     """Test that the Section constructor raises a TypeError if content is not a list or string."""
     with pytest.raises(TypeError):
-        Section("Title", 1)
+        Section("Title", 1)  # type: ignore
 
 
 def test_section_str(section):
@@ -409,7 +518,7 @@ def test_markdown_parse_sections_returns_section_with_correct_children_and_grand
 def test_parse_sections_to_dict_returns_dict(complex_markdown_string):
     """Test that the parse_sections_to_dict function returns a dictionary."""
     sections = parse_sections(complex_markdown_string)
-    sections_dict = sections.dict()
+    sections_dict = sections.to_dict()
     assert isinstance(sections_dict, dict)
 
 
