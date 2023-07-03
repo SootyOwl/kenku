@@ -126,7 +126,7 @@ def test_section_to_markdown():
     child2 = Section("Child 2", [], parent=root)
     grandchild = Section("Grandchild", [], parent=child1)
     expected_markdown = "# Root\n\n## Child 1\n\n### Grandchild\n\n## Child 2"
-    assert root.to_markdown() == expected_markdown
+    assert root.to_markdown(True) == expected_markdown
 
 import pytest
 
@@ -376,7 +376,7 @@ def test_section_to_markdown_returns_markdown_with_children(
     """Test that the to_markdown function returns a markdown string from a Section object."""
     section.add_child(child_section)
     child_section.add_child(grandchild_section)
-    markdown = section.to_markdown()
+    markdown = section.to_markdown(include_children=True)
     assert (
         markdown
         == "# Title\n\nContent\n\n## Child Title\n\nChild Content\n\n### Grandchild Title\n\nGrandchild Content"
@@ -392,7 +392,7 @@ def test_section_to_markdown_returns_markdown_from_markdown_string(
 ):
     """Test that the to_markdown function returns a markdown string from a Section object."""
     section = Section.from_markdown(simple_markdown_string)
-    markdown = section.to_markdown()
+    markdown = section.to_markdown(True)
     assert markdown.strip() == simple_markdown_string.strip()
 
 

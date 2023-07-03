@@ -169,5 +169,5 @@ def test_section_to_markdown():
     parent.add_children([child1, child2])
     child1.add_child(grandchild)
 
-    markdown = parent.to_markdown()
+    markdown = parent.to_markdown(True)
     assert markdown == "# Parent\n\nParent content\n\n## Child 1\n\nChild 1 content\n\n### Grandchild\n\nGrandchild content\n\n## Child 2\n\nChild 2 content"

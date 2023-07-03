@@ -60,7 +60,7 @@ class Section:
 
     def __hash__(self):
         return hash(
-            (self.title, "".join(self.content), self.parent, tuple(self.children))
+            (self.title, hash("".join(self.content)))
         )
 
     def add_child(self, child: "Section"):
@@ -157,11 +157,11 @@ class Section:
             builder.add_line(line)
         return builder.tree()
 
-    def to_markdown(self) -> str:
+    def to_markdown(self, include_children=False) -> str:
         """Convert this section to a markdown string."""
-        return "\n\n".join(self._md_lines())
+        return "\n\n".join(self._md_lines(include_children=include_children))
 
-    def _md_lines(self) -> List[str]:
+    def _md_lines(self, include_children: bool = False) -> List[str]:
         """Get the markdown lines for this section."""
         # get the level of this section
         level = self.get_level() + 1
@@ -169,8 +169,9 @@ class Section:
         heading = "#" * level + " " + self.title
         md_lines = [heading, *self.content]
         # create the children
-        for child in self.children:
-            md_lines.extend(child._md_lines())
+        if include_children:
+            for child in self.children:
+                md_lines.extend(child._md_lines(True))
         return md_lines
 
 
@@ -236,7 +237,10 @@ class SectionBuilder:
             Section: The root section of the tree.
         """
         # make a deep copy of the tree, remove the root section, and return the copy
-        tree = self.builder.children[0].copy()
+        try:
+            tree = self.builder.children[0].copy()
+        except IndexError:
+            tree = Section("", [])
         tree.parent = None
         return tree
 
