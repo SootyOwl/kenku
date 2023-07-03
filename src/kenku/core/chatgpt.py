@@ -161,8 +161,8 @@ class KenkuGPTEngine:
 
     Attributes:
         model (str): The model to use for generating responses. Defaults to "gpt-3.5-turbo".
-        system_messages (List[Dict[str, str]]): The system messages to use for generating responses.
         messages (List[Dict[str, str]]): The initial messages to use for generating responses. Defaults to None.
+        system_messages (List[Dict[str, str]]): The system messages to use for generating responses.
         functions (List[Callable]): The functions to use for generating responses. Defaults to None. Must return a string.
         function_call ("auto"|"none"|dict["name", str]): The function call to use for generating responses. Defaults to "auto" for automatic detection.
 
@@ -174,6 +174,7 @@ class KenkuGPTEngine:
         self,
         model: str = "gpt-3.5-turbo",
         messages: List[Dict[str, str]] = None,
+        system_messages: List[Dict[str, str]] = None,
         functions: List[Callable] = None,
         function_call: Literal["auto", "none"] | Dict[Literal["name"], str] = "auto",
     ):
@@ -181,10 +182,7 @@ class KenkuGPTEngine:
         self.model = model
         """The model to use for generating responses."""
 
-        self.system_messages = [
-            {"role": "system", "content": "You are a chatbot named Kenku. Your goal is to answer questions and generate new information for a D&D campaign."},
-            {"role": "system", "content": "You may request information from the DM's notes by using the provided commands."},
-        ]
+        self.system_messages = system_messages or []
         """The system messages are used to instruct the ChatGPT engine in what it should do."""
 
         self.messages = messages or []

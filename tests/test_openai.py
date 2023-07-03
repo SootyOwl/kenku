@@ -92,7 +92,6 @@ class Response:
 
 
 # test the chatGPT engine
-@skip_openai
 class TestKenkuGPTEngine:
     # add a fixture to create the engine
     @pytest.fixture

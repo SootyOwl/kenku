@@ -109,6 +109,10 @@ def run_engine(embeddings: Embeddings):
 
     # Create the KenkuGPTEngine
     engine = KenkuGPTEngine(
+        system_messages= [
+            {"role": "system", "content": "You are a chatbot named Kenku. Your goal is to answer questions and generate new information for a D&D campaign."},
+            {"role": "system", "content": "You may request information from the DM's notes by using the provided commands."},
+        ],
         functions=[get_context],
         function_call="auto",
     )

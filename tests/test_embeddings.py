@@ -1,8 +1,12 @@
 # BEGIN: 8f6c5d4b9f3a
 import os
+
+import pytest
+
 from kenku.core.embeddings import Embeddings
 from kenku.core.markdown import Section
-import pytest
+
+from .conftest import skip_openai
 
 
 @pytest.fixture(scope="session")
@@ -21,9 +25,6 @@ def sections():
         ),
     ]
 
-from .conftest import skip_openai
-
-
 
 @pytest.fixture(scope="session")
 def embeddings(sections):
@@ -40,13 +41,17 @@ def embeddings(sections):
 @skip_openai
 def test_generate_embeddings(embeddings):
     assert len(embeddings.embeddings) == 3
-    assert all(isinstance(embedding, list) for embedding in embeddings.embeddings.values())
+    assert all(
+        isinstance(embedding, list) for embedding in embeddings.embeddings.values()
+    )
+
 
 @skip_openai
 def test_get_embedding(embeddings, sections):
     embedding = embeddings.get_embedding(sections[0])
     assert isinstance(embedding, list)
-    assert len(embedding) == 12288  
+    assert len(embedding) == 12288
+
 
 @skip_openai
 def test_get_similar_sections(embeddings, sections):
@@ -54,6 +59,7 @@ def test_get_similar_sections(embeddings, sections):
     assert len(similar_sections) == 2
     assert similar_sections[0][0] == sections[2]
     assert similar_sections[1][0] == sections[0]
+
 
 @skip_openai
 def test_save_embeddings(embeddings, tmp_path):
