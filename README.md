@@ -4,7 +4,9 @@ Kenku is a tool for generating and retrieving information from Markdown files. I
 
 [^1]: This is not yet implemented.
 
-Kenku is named after the [Kenku](https://en.wikipedia.org/wiki/Kenku) from Dungeons and Dragons. Kenku are known for their ability to mimic sounds and voices.
+Kenku is named after the [Kenku](https://en.wikipedia.org/wiki/Kenku), a birdlike creature from Dungeons and Dragons:
+
+> Kenku "...are most recognizable for their lack of a voice; instead of speaking themselves, they use their gift of mimicry to communicate. [...] they can cleverly piece together voices and sounds they've heard to communicate."
 
 ## Installation
 
