@@ -31,6 +31,7 @@ def get_context(query: str, n: int = 5) -> str:
 
     Args:
         query: The query topic to get context about.
+        n: The maximum number of sections to return context from.
     """
     if not hasattr(get_context, "embeddings"):
         raise AttributeError("Embeddings not set.")

@@ -7,6 +7,10 @@ from typing import Any, Callable, Dict, List, Literal, Protocol, Tuple
 import openai
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 # section protocol
 class Section(Protocol):
@@ -101,7 +105,7 @@ class FunctionTemplateGenerator:
             if parameter.default == inspect._empty:
                 parameters["required"].append(name)
             parameters["properties"][name] = {
-                "type": self._get_type(parameter.annotation),
+                "type": self._get_type(parameter),
                 "description": self._get_description(function, parameter),
             }
             # add default value if it exists
@@ -116,8 +120,10 @@ class FunctionTemplateGenerator:
 
         return parameters
 
-    def _get_type(self, annotation: Any) -> str:
+    def _get_type(self, parameter: inspect.Parameter) -> str:
+        # sourcery skip: assign-if-exp, reintroduce-else
         """Get the type for a parameter."""
+        annotation = parameter.annotation
         if annotation == inspect._empty:
             return "string"
         if annotation == int:
@@ -130,6 +136,9 @@ class FunctionTemplateGenerator:
             return "array"
         if annotation == dict:
             return "object"
+        LOGGER.warning(
+            f"Unknown type {annotation} for parameter {parameter.name} in function {function.__name__}. Defaulting to string."
+        )
         return "string"
 
     def _get_description(self, function: Callable, parameter: inspect.Parameter) -> str:
@@ -152,6 +161,10 @@ class FunctionTemplateGenerator:
             for line in docstring.splitlines():
                 if line.strip().startswith(parameter.name):
                     return line.strip().split(":")[1].strip()
+            LOGGER.warning(
+                f"No description found for parameter {parameter.name} in function {function.__name__}. Add this parameter to the docstring to generate a template for this function."
+            )
+        return ""
 
 
 class KenkuGPTEngine:
@@ -263,9 +276,7 @@ class KenkuGPTEngine:
         """Check a response to see if GPT wanted to call a function."""
         if response.get("function_call"):
             # function call arguments are returned as a json string, so we need to parse them
-            response_args = json.loads(
-                response["function_call"]["arguments"]
-            )
+            response_args = json.loads(response["function_call"]["arguments"])
             return (
                 response["function_call"]["name"],
                 response_args,
