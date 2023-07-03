@@ -8,17 +8,19 @@ The KenkuGPTEngine has the ability to ask for context from the markdown files
 using the function call `get_context`. This function will use a cosine
 similarity metric to find the most similar section to the context query and
 return the section's text."""
-from kenku.core.markdown import Section
-from kenku.core.embeddings import Embeddings
-from kenku.core.chatgpt import KenkuGPTEngine
-from kenku.core.utils import get_markdown_files, get_file_text
 import logging
 
 import openai
+from termcolor import colored
+
+from kenku.core.chatgpt import KenkuGPTEngine
+from kenku.core.embeddings import Embeddings
+from kenku.core.markdown import Section
+from kenku.core.utils import get_file_text, get_markdown_files
 
 openai.api_key_path = ".apikey"
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -106,13 +108,20 @@ def main():
 
 def run_engine(embeddings: Embeddings):
     # allow the get_context function to access the embeddings
+    # pretty janky but it works quite well
     get_context.embeddings = embeddings
 
     # Create the KenkuGPTEngine
     engine = KenkuGPTEngine(
-        system_messages= [
-            {"role": "system", "content": "You are a chatbot named Kenku. Your goal is to answer questions and generate new information for a D&D campaign."},
-            {"role": "system", "content": "You may request information from the DM's notes by using the provided commands."},
+        system_messages=[
+            {
+                "role": "system",
+                "content": "You are a chatbot named Kenku. Your goal is to answer questions and generate new information for a D&D campaign.",
+            },
+            {
+                "role": "system",
+                "content": "You may request information from the DM's notes by using the provided commands.",
+            },
         ],
         functions=[get_context],
         function_call="auto",
@@ -136,9 +145,6 @@ def run_engine(embeddings: Embeddings):
 
         # print the messages that were added
         printer.print_messages(engine.messages[len(_msg_list) :])
-
-
-from termcolor import colored
 
 
 class ConversationPrinter:
