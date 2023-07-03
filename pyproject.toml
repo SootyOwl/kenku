@@ -6,6 +6,9 @@ authors = ["Sooty Owl "]
 readme = "README.md"
 packages = [{include = "kenku", from = "src"}]
 
+[tool.poetry.scripts]
+kenku = "kenku.main:main"
+
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 openai = "^0.27.1"
@@ -20,7 +23,8 @@ scikit-learn = "^1.2.2"
 transformers = "^4.26.1"
 python-dotenv = "^1.0.0"
 pandarallel = "^1.6.4"
-line-profiler = "^4.0.3"
+tenacity = "^8.2.2"
+termcolor = "^2.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -29,6 +33,9 @@ ipywidgets = "^8.0.4"
 jupyter-contrib-nbextensions = "^0.7.0"
 pytest = "^7.3.1"
 pytest-cov = "^4.0.0"
+line-profiler = "^4.0.3"
+pytest-dotenv = "^0.5.2"
+pytest-mock = "^3.11.1"
 
 [build-system]
 requires = ["poetry-core"]
