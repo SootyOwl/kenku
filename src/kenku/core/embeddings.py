@@ -5,10 +5,11 @@ This module contains the classes and functions for the embeddings used in Kenku.
 Classes:
     Section(Protocol): A protocol for a section of a document, from markdown.py.
     """
-from typing import Dict, List, Optional, Tuple, Protocol
+from typing import Dict, List, Optional, Protocol, Tuple
+
 import openai
-from openai.embeddings_utils import cosine_similarity, get_embedding
 import tiktoken
+from openai.embeddings_utils import cosine_similarity, get_embedding
 
 EMBEDDINGS_MODEL = "text-embedding-ada-002"
 EMBEDDINGS_ENCODING = "cl100k_base"  # encoding for ada-002
@@ -58,7 +59,9 @@ class Embeddings:
             import multiprocessing
 
             # create a pool of workers
-            with multiprocessing.Pool() as pool:
+            with multiprocessing.Pool(
+                processes=multiprocessing.cpu_count() // 2
+            ) as pool:
                 # generate the embeddings
                 embeddings = pool.map(
                     get_embedding,
