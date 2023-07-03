@@ -1,3 +1,7 @@
 tmp/**
 .env
 __pycache__
+.coverage
+coverage.lcov
+.apikey
+**embeddings.pickle
