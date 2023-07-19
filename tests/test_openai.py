@@ -12,7 +12,8 @@ import os
 import openai
 import pytest
 
-from kenku.core.chatgpt import FunctionTemplateGenerator, KenkuGPTEngine
+from kenku.core.chatgpt import GPTEngine
+from kenku.core.utils import FunctionTemplateGenerator
 
 from .conftest import skip_openai
 
@@ -96,7 +97,7 @@ class TestKenkuGPTEngine:
     # add a fixture to create the engine
     @pytest.fixture
     def engine(self):
-        return KenkuGPTEngine()
+        return GPTEngine()
 
     @pytest.fixture
     def response(self):
@@ -290,7 +291,7 @@ class TestKenkuGPTEngineConversation:
             return "This is the context about the topic"
 
         # create the engine
-        engine = KenkuGPTEngine(
+        engine = GPTEngine(
             function_call="auto",
             model="gpt-3.5-turbo",
             functions=[get_context],

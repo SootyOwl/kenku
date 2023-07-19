@@ -13,7 +13,7 @@ import logging
 import openai
 from termcolor import colored
 
-from kenku.core.chatgpt import KenkuGPTEngine
+from kenku.core.chatgpt import GPTEngine
 from kenku.core.embeddings import Embeddings
 from kenku.core.markdown import Section
 from kenku.core.utils import get_file_text, get_markdown_files
@@ -103,16 +103,16 @@ def main():
         save_embeddings(embeddings)
     # run the engine
     LOGGER.info("Running engine...")
-    run_engine(embeddings)
+    run_kenku(embeddings)
 
 
-def run_engine(embeddings: Embeddings):
+def run_kenku(embeddings: Embeddings):
     # allow the get_context function to access the embeddings
     # pretty janky but it works quite well
     get_context.embeddings = embeddings
 
     # Create the KenkuGPTEngine
-    engine = KenkuGPTEngine(
+    engine = GPTEngine(
         system_messages=[
             {
                 "role": "system",

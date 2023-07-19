@@ -2,12 +2,13 @@
 
 import inspect
 import json
+import logging
 from typing import Any, Callable, Dict, List, Literal, Protocol, Tuple
 
 import openai
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-import logging
+from kenku.core.utils import FunctionTemplateGenerator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,140 +48,20 @@ class Embeddings(Protocol):
         ...
 
 
-class FunctionTemplateGenerator:
-    """Takes a set of callables and tries to build a ChatGPT template for each one using introspection.
-
-    e.g.:
-    Takes the function `get_current_weather(location: string, unit: 'celsius' | 'fahrenheit')` and generates a template like:
-    [
-        {
-            "name": "get_current_weather",
-            "description": "Get the current weather in a given location",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "The city and state, e.g. San Francisco, CA",
-                    },
-                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
-                },
-                "required": ["location"],
-            },
-        }
-    ]
-
-    Note that the parameters object is in JSON Schema format, strictly.
-    Each property in the parameters object is a parameter to the function.
-    Docstrings are used to populate the description field for each parameter.
-
-    The callable must define a short docstring for each variable and a type annotation for each variable.
-    """
-
-    def __init__(self, functions: List[Callable]):
-        """Initialize the FunctionTemplateGenerator."""
-        self.functions = functions
-        """The functions to generate templates for."""
-
-    def generate_templates(self) -> List[Dict[str, Any]]:
-        """Generate templates for each function."""
-        return [self._generate_template(function) for function in self.functions]
-
-    def _generate_template(self, function: Callable) -> Dict[str, Any]:
-        """Generate a template for a function."""
-        return {
-            "name": function.__name__,
-            "description": function.__doc__.splitlines()[0],
-            "parameters": self._generate_parameters(function),
-        }
-
-    def _generate_parameters(self, function: Callable) -> Dict[str, Any]:
-        """Generate a parameters object for a function."""
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        }
-        for name, parameter in inspect.signature(function).parameters.items():
-            if parameter.default == inspect._empty:
-                parameters["required"].append(name)
-            parameters["properties"][name] = {
-                "type": self._get_type(parameter),
-                "description": self._get_description(function, parameter),
-            }
-            # add default value if it exists
-            if parameter.default != inspect._empty:
-                parameters["properties"][name]["default"] = parameter.default
-
-            # add enum if it exists
-            if parameter.annotation != inspect._empty and hasattr(
-                parameter.annotation, "__args__"
-            ):
-                parameters["properties"][name]["enum"] = parameter.annotation.__args__
-
-        return parameters
-
-    def _get_type(self, parameter: inspect.Parameter) -> str:
-        # sourcery skip: assign-if-exp, reintroduce-else
-        """Get the type for a parameter."""
-        annotation = parameter.annotation
-        if annotation == inspect._empty:
-            return "string"
-        if annotation == int:
-            return "integer"
-        if annotation == float:
-            return "number"
-        if annotation == bool:
-            return "boolean"
-        if annotation == list:
-            return "array"
-        if annotation == dict:
-            return "object"
-        LOGGER.warning(
-            f"Unknown type {annotation} for parameter {parameter.name} in function {function.__name__}. Defaulting to string."
-        )
-        return "string"
-
-    def _get_description(self, function: Callable, parameter: inspect.Parameter) -> str:
-        """Get the description for a parameter from the docstring of the function.
-
-        The description is the first line of the docstring that starts with the parameter name.
-
-        e.g.:
-        ```
-        def get_current_weather(location: str, unit: str = "celsius") -> str:
-            \"""Get the current weather in a given location.
-
-            location: The city and state, e.g. San Francisco, CA
-            unit: The unit to return the temperature in, e.g. celsius or fahrenheit
-            \"""
-            ...
-        ```
-        """
-        if docstring := function.__doc__:
-            for line in docstring.splitlines():
-                if line.strip().startswith(parameter.name):
-                    return line.strip().split(":")[1].strip()
-            LOGGER.warning(
-                f"No description found for parameter {parameter.name} in function {function.__name__}. Add this parameter to the docstring to generate a template for this function."
-            )
-        return ""
-
-
-class KenkuGPTEngine:
-    """Kenku GPT Engine.
-
-    Kenku is a tool for answering questions and generating new information for a D&D campaign.
+class GPTEngine:
+    """GPT Engine.
 
     Attributes:
-        model (str): The model to use for generating responses. Defaults to "gpt-3.5-turbo".
-        messages (List[Dict[str, str]]): The initial messages to use for generating responses. Defaults to None.
-        system_messages (List[Dict[str, str]]): The system messages to use for generating responses.
-        functions (List[Callable]): The functions to use for generating responses. Defaults to None. Must return a string.
-        function_call ("auto"|"none"|dict["name", str]): The function call to use for generating responses. Defaults to "auto" for automatic detection.
+        model (str): The model to use. Defaults to "gpt-3.5-turbo".
+        messages (List[Dict[str, str]]): The messages in the conversation. Defaults to [].
+        system_messages (List[Dict[str, str]]): The system messages in the conversation. Defaults to [].
+        functions (List[Callable]): The functions that ChatGPT can call. Defaults to []. Functions must have a docstring. See FunctionTemplateGenerator for more information.
+        function_call ("auto"|"none"|dict["name", str]): How to call functions. Defaults to "auto". If "auto", ChatGPT will automatically call functions. If "none", ChatGPT will not call functions. If a dict, ChatGPT will be forced to call functions with the given name.
+        function_call_limit (int): The maximum number of function calls allowed in a single response. Defaults to 5. If you're getting a "Too many function calls" error, try increasing this value or tweak your system prompts to reduce the number of function calls that ChatGPT makes.
 
     Methods:
-        get_response: Get a response from the engine.
+        get_response(message: str) -> str: Get a response from the engine.
+
     """
 
     def __init__(
@@ -190,26 +71,19 @@ class KenkuGPTEngine:
         system_messages: List[Dict[str, str]] = None,
         functions: List[Callable] = None,
         function_call: Literal["auto", "none"] | Dict[Literal["name"], str] = "auto",
+        function_call_limit: int = 5,
     ):
         """Initialize the engine."""
         self.model = model
-        """The model to use for generating responses."""
 
         self.system_messages = system_messages or []
-        """The system messages are used to instruct the ChatGPT engine in what it should do."""
 
         self.messages = messages or []
-        """The initial messages to use for generating responses."""
 
         self.functions = functions or []
-        """The functions to use for generating responses."""
-
         self.function_call = function_call
-        """The function call to use for generating responses. 
-        Defaults to "auto" for automatic detection."""
-
+        self.function_call_limit = function_call_limit
         self._templates = FunctionTemplateGenerator(self.functions).generate_templates()
-        """The templates to use for generating responses."""
 
         self._functions: dict[str, Callable] = {
             function.__name__: function for function in self.functions
@@ -229,27 +103,23 @@ class KenkuGPTEngine:
         if not message:
             return ""
 
-        # build the prompt of all messages to be sent to the model
         self._add_user_message(message)
-
-        # generate the response from the model
         response = self._generate_response()
-
-        # add the response to the conversation
         self.messages.append(response)
+        response = self._handle_function_calls(response)
+        return response
 
-        # parse the response for function calls
-        i = 0
-        while (function_calls := self._parse_function_calls(response))[0] is not None:
-            # get the function responses
+    def _handle_function_calls(self, response) -> str:
+        for _ in range(self.function_call_limit):
+            function_calls = self._parse_function_calls(response)
+            if function_calls[0] is None:
+                break
             function_responses = self._get_function_response(function_calls)
-            # add the function responses to the conversation
             self.messages.append(function_responses)
-            # generate a new response from the model
             response = self._generate_response()
-            # add the response to the conversation
             self.messages.append(response)
-        # return the final response
+        else:
+            raise RuntimeError("Too many function calls")
         return response
 
     def _add_user_message(self, message: str) -> None:
